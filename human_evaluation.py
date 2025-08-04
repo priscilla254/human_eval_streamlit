@@ -5,7 +5,7 @@ import streamlit as st
 from datetime import datetime
 
 # === Config ===
-image_dir = "/home/hmc/pb543/file_browser/human_eval_subset"
+image_dir = "human_eval_subset"
 metadata_path = os.path.join(image_dir, "human_eval_subset_metadata.csv")
 results_csv = "evaluation_results.csv"
 IMAGES_PER_USER = 30
