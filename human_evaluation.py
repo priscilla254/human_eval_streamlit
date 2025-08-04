@@ -3,11 +3,21 @@ import random
 import pandas as pd
 import streamlit as st
 from datetime import datetime
+import json
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds_dict = json.loads(st.secrets["gcp_service_account"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+client = gspread.authorize(creds)
+sheet = client.open("Human_Evaluation_Results").sheet1
 
 # === Config ===
 image_dir = "human_eval_subset"
 metadata_path = os.path.join(image_dir, "human_eval_subset_metadata.csv")
-results_csv = "evaluation_results.csv"
+# results_csv = "evaluation_results.csv"
 IMAGES_PER_USER = 30
 
 # === Load metadata ===
@@ -15,6 +25,15 @@ df = pd.read_csv(metadata_path)
 
 # === UI: Title and Login ===
 st.title("🧠 Human Evaluation of Synthetic Faces")
+st.markdown("""
+This study aims to assess the **realism**, **age appropriateness**, and **ethnic consistency** of AI-generated human faces.  
+Your input helps evaluate how well current generative models align with human expectations across different demographic groups.
+
+Please rate **30 images**. Your responses will remain anonymous and are critical for improving fairness and accuracy in synthetic face generation. 
+            Each question uses a 1 to 5 scale, where 1 means “not at all” or “very unlikely,” and 5 means “very accurate” or “looks good.” 
+            Enter your name and press enter to start the evaluation.
+""")
+
 user_id = st.text_input("🔐 Enter your name:", max_chars=30)
 
 # === Proceed once user ID is entered ===
@@ -73,10 +92,16 @@ if user_id:
                 "timestamp": datetime.now().isoformat()
             }
 
-            if os.path.exists(results_csv):
-                pd.DataFrame([result]).to_csv(results_csv, mode='a', header=False, index=False)
-            else:
-                pd.DataFrame([result]).to_csv(results_csv, index=False)
+            sheet.append_row([
+                result["user_id"],
+                result["filename"],
+                result["ethnicity"],
+                result["age_group"],
+                result["realism"],
+                result["age_appropriateness"],
+                result["ethnic_consistency"],
+                result["timestamp"]
+            ])
 
             st.session_state.current_index += 1
             st.rerun()
